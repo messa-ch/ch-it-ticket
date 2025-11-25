@@ -25,6 +25,7 @@ const ticketSchema = z.object({
     subject: z.string().min(1, 'Subject is required'),
     description: z.string().min(1, 'Description is required'),
     website: z.string().min(1, 'Please select a website'),
+    urgency: z.number().min(1).max(5),
 });
 
 type TicketFormData = z.infer<typeof ticketSchema>;
@@ -43,6 +44,7 @@ export function TicketForm() {
         formState: { errors },
     } = useForm<TicketFormData>({
         resolver: zodResolver(ticketSchema),
+        defaultValues: { urgency: 3 },
     });
 
     const processFiles = (files: File[]) => {
@@ -240,6 +242,24 @@ export function TicketForm() {
                     placeholder="Please describe the issue in detail..."
                 />
                 {errors.description && <p className="text-xs text-red-400 ml-1">{errors.description.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-semibold text-white ml-1 flex items-center gap-2">
+                    Urgency <span className="text-gray-300 text-xs">(1 = low, 5 = critical)</span>
+                </label>
+                <div className="flex items-center gap-4">
+                    <input
+                        type="range"
+                        min={1}
+                        max={5}
+                        step={1}
+                        {...register('urgency', { valueAsNumber: true })}
+                        className="w-full accent-white"
+                    />
+                    <span className="w-8 text-center text-white font-semibold">{watch('urgency') ?? 3}</span>
+                </div>
+                {errors.urgency && <p className="text-xs text-red-400 ml-1">{errors.urgency.message}</p>}
             </div>
 
             <div className="space-y-2">

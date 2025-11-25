@@ -1,0 +1,2 @@
+-- Restored placeholder migration to satisfy history.
+-- No additional changes required; adminId relation already exists from prior migration.

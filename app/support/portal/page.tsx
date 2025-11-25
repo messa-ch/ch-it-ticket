@@ -12,6 +12,9 @@ type Ticket = {
   createdAt: string;
   status: 'OPEN' | 'IN PROGRESS' | 'CLOSED';
   rating: number | null;
+  urgency: number;
+  feedback: string | null;
+  note: string | null;
 };
 
 type View = 'email' | 'code' | 'tickets';
@@ -24,6 +27,8 @@ export default function CustomerPortalPage() {
   const [error, setError] = useState<string | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [feedbackDraft, setFeedbackDraft] = useState<Record<string, string>>({});
 
   const loadTickets = async () => {
     try {
@@ -95,12 +100,12 @@ export default function CustomerPortalPage() {
     setMessage('You have been signed out.');
   };
 
-  const submitRating = async (ticketId: string, rating: number) => {
+  const submitRating = async (ticketId: string, rating: number, feedback?: string) => {
     try {
       const res = await fetch(`/api/customer/tickets/${ticketId}/rating`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating }),
+        body: JSON.stringify({ rating, feedback }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to save rating');
@@ -219,12 +224,16 @@ export default function CustomerPortalPage() {
                       <div>
                         <p className="text-sm text-gray-300">{new Date(ticket.createdAt).toLocaleString()}</p>
                         <h3 className="text-lg font-semibold">{ticket.subject}</h3>
-                        <p className="text-sm text-gray-300">{ticket.website}</p>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs ${
-                          ticket.status === 'OPEN'
-                            ? 'bg-green-500/20 text-green-200'
+                    <p className="text-sm text-gray-300">{ticket.website}</p>
+                    <p className="text-sm text-gray-300">Urgency: {ticket.urgency}</p>
+                    {ticket.note && (
+                      <p className="text-sm text-blue-200 mt-1">Note from support: {ticket.note}</p>
+                    )}
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs ${
+                      ticket.status === 'OPEN'
+                        ? 'bg-green-500/20 text-green-200'
                             : ticket.status === 'IN PROGRESS'
                             ? 'bg-yellow-500/20 text-yellow-200'
                             : 'bg-gray-500/20 text-gray-200'
@@ -235,22 +244,48 @@ export default function CustomerPortalPage() {
                     </div>
                     <p className="text-sm text-gray-200 whitespace-pre-line">{ticket.description}</p>
                     {ticket.status === 'CLOSED' && (
-                      <div className="pt-2">
-                        {ticket.rating ? (
-                          <p className="text-sm text-gray-200">Your rating: {ticket.rating} / 5</p>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm text-gray-200">Rate this ticket:</p>
-                            {[1, 2, 3, 4, 5].map((star) => (
+                      <div className="pt-2 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-gray-200">Rate this ticket:</p>
+                          {[1, 2, 3, 4, 5].map((star) => {
+                            const active = hoverRating !== null ? star <= hoverRating : star <= (ticket.rating ?? 0);
+                            return (
                               <button
                                 key={star}
-                                className="text-yellow-300 text-lg hover:scale-110 transition"
-                                onClick={() => submitRating(ticket.id, star)}
+                                className={`text-lg transition ${active ? 'text-yellow-300' : 'text-gray-500'} hover:scale-110`}
+                                onMouseEnter={() => setHoverRating(star)}
+                                onMouseLeave={() => setHoverRating(null)}
+                                onClick={() => submitRating(ticket.id, star, feedbackDraft[ticket.id])}
                               >
                                 ★
                               </button>
-                            ))}
-                          </div>
+                            );
+                          })}
+                          <span className="text-sm text-gray-300">
+                            {(hoverRating ?? ticket.rating) ? `${hoverRating ?? ticket.rating} / 5` : ''}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-sm text-gray-300">Feedback (optional)</label>
+                          <textarea
+                            className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm"
+                            rows={2}
+                            value={feedbackDraft[ticket.id] ?? ticket.feedback ?? ''}
+                            onChange={(e) =>
+                              setFeedbackDraft((prev) => ({
+                                ...prev,
+                                [ticket.id]: e.target.value,
+                              }))
+                            }
+                            onBlur={() => {
+                              if (ticket.rating) {
+                                submitRating(ticket.id, ticket.rating, feedbackDraft[ticket.id] ?? ticket.feedback);
+                              }
+                            }}
+                          />
+                        </div>
+                        {ticket.feedback && !feedbackDraft[ticket.id] && (
+                          <p className="text-sm text-gray-200">Your feedback: {ticket.feedback}</p>
                         )}
                       </div>
                     )}

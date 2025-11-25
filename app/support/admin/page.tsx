@@ -11,7 +11,10 @@ type Ticket = {
   description: string;
   website: string;
   createdAt: string;
-  status: 'OPEN' | 'CLOSED';
+  status: 'OPEN' | 'IN PROGRESS' | 'CLOSED';
+  rating: number | null;
+  urgency: number;
+  note: string | null;
 };
 
 type View = 'login' | 'forgot' | 'dashboard';
@@ -135,7 +138,8 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      if (!res.ok) throw new Error('Failed to send reset email');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to send reset email');
       setForgotSent(true);
     } catch (err) {
       setError((err as Error).message);
@@ -146,6 +150,7 @@ export default function AdminPage() {
     return tickets.map((t) => ({
       ...t,
       createdLabel: new Date(t.createdAt).toLocaleString(),
+      note: t.note ?? '',
     }));
   }, [tickets]);
 
@@ -308,10 +313,12 @@ export default function AdminPage() {
                   <th className="text-left p-2">Name</th>
                   <th className="text-left p-2">Email</th>
                   <th className="text-left p-2">Subject</th>
+                  <th className="text-left p-2">Urgency</th>
                   <th className="text-left p-2">Website</th>
                   <th className="text-left p-2">Created</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Action</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Action</th>
+                    <th className="text-left p-2">Note (visible to customer)</th>
                 </tr>
               </thead>
               <tbody>
@@ -320,6 +327,7 @@ export default function AdminPage() {
                     <td className="p-2">{ticket.name}</td>
                     <td className="p-2">{ticket.email}</td>
                     <td className="p-2">{ticket.subject}</td>
+                    <td className="p-2">{ticket.urgency}</td>
                     <td className="p-2">{ticket.website}</td>
                     <td className="p-2 text-gray-300">{ticket.createdLabel}</td>
                     <td className="p-2">
@@ -343,6 +351,26 @@ export default function AdminPage() {
                         <option value="IN PROGRESS">IN PROGRESS</option>
                         <option value="CLOSED">CLOSED</option>
                       </select>
+                    </td>
+                    <td className="p-2">
+                      <textarea
+                        className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm"
+                        rows={2}
+                        defaultValue={ticket.note}
+                        onBlur={async (e) => {
+                          const note = e.target.value;
+                          try {
+                            const res = await fetch(`/api/admin/tickets/${ticket.id}/note`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ note }),
+                            });
+                            if (!res.ok) throw new Error('Failed to save note');
+                          } catch (err) {
+                            setError((err as Error).message);
+                          }
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}

@@ -21,6 +21,9 @@ model Ticket {
   createdAt   DateTime @default(now())
   status      String   @default("OPEN")
   rating      Int?
+  urgency     Int      @default(3)
+  feedback    String?
+  note        String?
 }
 
 model AdminUser {

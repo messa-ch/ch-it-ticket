@@ -23,14 +23,16 @@ export async function POST(
     }
 
     const body = await request.json();
-    const rating = Number(body.rating);
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    const rating = body.rating !== undefined ? Number(body.rating) : null;
+    const feedback = typeof body.feedback === 'string' ? body.feedback.trim() : null;
+
+    if (rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
       return NextResponse.json({ error: 'Rating must be 1-5' }, { status: 400 });
     }
 
     const updated = await prisma.ticket.update({
       where: { id },
-      data: { rating },
+      data: { rating, feedback },
     });
 
     return NextResponse.json({ ticket: updated });

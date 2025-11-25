@@ -11,6 +11,7 @@ const ticketSchema = z.object({
     subject: z.string().min(1, 'Subject is required'),
     description: z.string().min(1, 'Description is required'),
     website: z.string().min(1, 'Website is required'),
+    urgency: z.number().min(1).max(5),
     screenshots: z.array(z.string()).optional(), // Array of base64 strings
 });
 
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
                 subject: validatedData.subject,
                 description: validatedData.description,
                 website: validatedData.website,
+                urgency: validatedData.urgency,
             },
         });
 

@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const email = String(body.email || '').toLowerCase().trim();
 
     if (!allowedAdminEmails.has(email)) {
-      return NextResponse.json({ success: true }); // hide existence
+      return NextResponse.json({ error: 'Wrong email' }, { status: 400 });
     }
 
     let admin = await prisma.adminUser.findUnique({ where: { email } });
@@ -40,7 +40,8 @@ export async function POST(request: Request) {
     });
 
     const mailer = getMailer();
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/admin/reset-password?token=${token}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://clarkehendrikfinance.com';
+    const resetUrl = `${baseUrl.replace(/\/$/, '')}/admin/reset-password?token=${token}`;
 
     try {
       await mailer.sendMail({
