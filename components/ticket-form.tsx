@@ -259,18 +259,6 @@ export function TicketForm() {
                     />
                     <span className="w-8 text-center text-white font-semibold">{watch('urgency') ?? 3}</span>
                 </div>
-                <div className="flex justify-between text-xs text-gray-400">
-                    {[1, 2, 3, 4, 5].map((value) => (
-                        <div key={value} className="flex flex-col items-center">
-                            <span
-                                className={`w-2 h-2 rounded-full ${
-                                    (watch('urgency') ?? 3) >= value ? 'bg-white' : 'bg-white/30'
-                                }`}
-                            />
-                            <span className="mt-1">{value}</span>
-                        </div>
-                    ))}
-                </div>
                 {errors.urgency && <p className="text-xs text-red-400 ml-1">{errors.urgency.message}</p>}
             </div>
 
