@@ -17,6 +17,14 @@ export default function SupportPage() {
           <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
             Premium support for our valued partners. Submit your request and experience seamless resolution.
           </p>
+          <div className="flex justify-center">
+            <a
+              href="/support/portal"
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-white/15 border border-white/20 text-white font-semibold hover:bg-white/25 transition"
+            >
+              See Ticket Updates
+            </a>
+          </div>
         </div>
 
         <TicketForm />

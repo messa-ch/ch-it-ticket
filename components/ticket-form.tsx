@@ -17,7 +17,6 @@ const websites = [
     'SecureALoan',
     'ProtectionPlusAdvisor',
     'CH Content Creator',
-    'Valued Partners',
 ];
 
 const ticketSchema = z.object({

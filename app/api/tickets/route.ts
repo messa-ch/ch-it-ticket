@@ -19,6 +19,19 @@ export async function POST(request: Request) {
         const body = await request.json();
         const validatedData = ticketSchema.parse(body);
 
+        const smtpHost = process.env.SMTP_HOST;
+        const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
+        const smtpUser = process.env.SMTP_USER;
+        const smtpPass = process.env.SMTP_PASS;
+        const smtpFrom = process.env.SMTP_FROM || '"IT Support" <support@chmoney.co.uk>';
+
+        if (!smtpHost || !smtpUser || !smtpPass) {
+            return NextResponse.json(
+                { error: 'Email not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM.' },
+                { status: 500 }
+            );
+        }
+
         // Create ticket in database
         const ticket = await prisma.ticket.create({
             data: {
@@ -32,12 +45,12 @@ export async function POST(request: Request) {
 
         // Send email
         const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.example.com',
-            port: parseInt(process.env.SMTP_PORT || '587'),
+            host: smtpHost,
+            port: smtpPort,
             secure: process.env.SMTP_SECURE === 'true',
             auth: {
-                user: process.env.SMTP_USER || 'user',
-                pass: process.env.SMTP_PASS || 'pass',
+                user: smtpUser,
+                pass: smtpPass,
             },
         });
 
@@ -54,8 +67,18 @@ export async function POST(request: Request) {
         }).filter(Boolean) as any[];
 
         try {
+            await transporter.verify();
+        } catch (verifyError) {
+            console.error('SMTP verification failed', verifyError);
+            return NextResponse.json(
+                { error: 'Email delivery failed (SMTP verify). Check SMTP credentials.' },
+                { status: 500 }
+            );
+        }
+
+        try {
             await transporter.sendMail({
-                from: process.env.SMTP_FROM || '"IT Support" <support@chmoney.co.uk>',
+                from: smtpFrom,
                 to: 'messa@chmoney.co.uk',
                 subject: `[${validatedData.website}] New Ticket: ${validatedData.subject}`,
                 text: `
@@ -82,8 +105,11 @@ export async function POST(request: Request) {
                 attachments: attachments,
             });
         } catch (mailError) {
-            // Don't block ticket creation if email fails; log for investigation
             console.error('Failed to send ticket email', mailError);
+            return NextResponse.json(
+                { error: 'Email delivery failed (sendMail). Check SMTP credentials and from address.', ticket },
+                { status: 500 }
+            );
         }
 
         return NextResponse.json({ success: true, ticket });

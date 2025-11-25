@@ -20,4 +20,32 @@ model Ticket {
   website     String
   createdAt   DateTime @default(now())
   status      String   @default("OPEN")
+  rating      Int?
+}
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AdminResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  admin     AdminUser @relation(fields: [adminId], references: [id])
+  adminId   String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model CustomerLoginToken {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

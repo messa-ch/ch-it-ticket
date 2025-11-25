@@ -1,0 +1,52 @@
+export const runtime = 'nodejs';
+
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { allowedAdminEmails } from '@/lib/admin';
+import { getMailer, getFromAddress } from '@/lib/mailer';
+import crypto from 'crypto';
+
+const RESET_EXPIRY_MINUTES = 60;
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const email = String(body.email || '').toLowerCase().trim();
+
+    if (!allowedAdminEmails.has(email)) {
+      return NextResponse.json({ success: true }); // hide existence
+    }
+
+    const admin = await prisma.adminUser.findUnique({ where: { email } });
+    if (!admin) {
+      return NextResponse.json({ success: true });
+    }
+
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + RESET_EXPIRY_MINUTES * 60 * 1000);
+
+    await prisma.adminResetToken.create({
+      data: {
+        token,
+        expiresAt,
+        adminId: admin.id,
+      },
+    });
+
+    const mailer = getMailer();
+    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/support/admin/reset?token=${token}`;
+
+    await mailer.sendMail({
+      from: getFromAddress(),
+      to: email,
+      subject: 'Reset your admin password',
+      text: `Use this link to reset your password: ${resetUrl}\nThis link expires in ${RESET_EXPIRY_MINUTES} minutes.`,
+      html: `<p>Use this link to reset your password (expires in ${RESET_EXPIRY_MINUTES} minutes):</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Forgot password error', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
