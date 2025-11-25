@@ -57,12 +57,17 @@ export function TicketForm() {
         const selectedFiles = files.slice(0, remainingSlots);
 
         selectedFiles.forEach((file) => {
-            if (!file.type.startsWith('image/')) {
-                return; // ignore non-images
-            }
+            // Allow images, pdf, zip
+            const isAllowed =
+                file.type.startsWith('image/') ||
+                file.type === 'application/pdf' ||
+                file.type === 'application/zip' ||
+                file.name.toLowerCase().endsWith('.zip');
+            if (!isAllowed) return;
+
             // Skip very large files to prevent huge payloads
             if (file.size > 5 * 1024 * 1024) {
-                setError('Please upload images under 5MB.');
+                setError('Please upload files under 5MB.');
                 return;
             }
 
@@ -316,9 +321,9 @@ export function TicketForm() {
                             <p className="text-sm text-gray-400 group-hover:text-gray-300">
                                 <span className="font-semibold text-white">Click to upload</span> or drag and drop
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">PNG, JPG (MAX. 5MB)</p>
+                            <p className="text-xs text-gray-500 mt-1">PNG, JPG, PDF, ZIP (MAX. 5MB)</p>
                         </div>
-                        <input type="file" className="hidden" multiple accept="image/*" onChange={handleFileChange} />
+                        <input type="file" className="hidden" multiple accept="image/*,.pdf,.zip" onChange={handleFileChange} />
                     </label>
                 </div>
 

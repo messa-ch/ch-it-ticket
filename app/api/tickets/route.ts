@@ -13,7 +13,7 @@ const ticketSchema = z.object({
     issueType: z.enum(['GENERAL', 'WEBSITE']),
     website: z.string().min(1, 'Website is required'),
     urgency: z.number().min(1).max(5),
-    screenshots: z.array(z.string()).optional(), // Array of base64 strings
+    screenshots: z.array(z.string()).optional(), // Array of base64 strings (images or files)
 });
 
 const exceptionEmails =
