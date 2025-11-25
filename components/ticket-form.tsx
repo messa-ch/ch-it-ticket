@@ -41,6 +41,7 @@ export function TicketForm() {
         register,
         handleSubmit,
         reset,
+        watch,
         formState: { errors },
     } = useForm<TicketFormData>({
         resolver: zodResolver(ticketSchema),

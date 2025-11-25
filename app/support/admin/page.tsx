@@ -266,30 +266,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <section className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold">Change password</h2>
-          <form className="grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={handleChangePassword}>
-            <input
-              type="password"
-              placeholder="Current password"
-              className="px-4 py-3 rounded-lg bg-black/30 border border-white/10 outline-none"
-              value={changePwState.currentPassword}
-              onChange={(e) => setChangePwState((s) => ({ ...s, currentPassword: e.target.value }))}
-            />
-            <input
-              type="password"
-              placeholder="New password (min 8)"
-              className="px-4 py-3 rounded-lg bg-black/30 border border-white/10 outline-none"
-              value={changePwState.newPassword}
-              onChange={(e) => setChangePwState((s) => ({ ...s, newPassword: e.target.value }))}
-            />
-            <button type="submit" className="px-4 py-3 rounded-lg bg-white text-black font-semibold hover:bg-gray-200">
-              Update
-            </button>
-          </form>
-          {changePwState.message && <p className="text-sm text-gray-200">{changePwState.message}</p>}
-        </section>
-
         {error && (
           <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded p-3">
             {error}
