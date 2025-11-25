@@ -30,11 +30,24 @@ export function verifySession<T extends Record<string, unknown>>(token: string):
   try {
     const secret = process.env.ADMIN_SESSION_SECRET;
     if (!secret) throw new Error('ADMIN_SESSION_SECRET is not set');
+
     const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const [data, signature] = decoded.split('.');
+    const lastDotIndex = decoded.lastIndexOf('.');
+
+    if (lastDotIndex === -1) return null;
+
+    const data = decoded.substring(0, lastDotIndex);
+    const signature = decoded.substring(lastDotIndex + 1);
+
     if (!data || !signature) return null;
+
     const expected = crypto.createHmac('sha256', secret).update(data).digest('hex');
+
+    // Ensure lengths match before comparing to avoid RangeError
+    if (expected.length !== signature.length) return null;
+
     if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) return null;
+
     return JSON.parse(data) as T;
   } catch {
     return null;
