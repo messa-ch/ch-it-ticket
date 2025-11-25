@@ -1,5 +1,6 @@
 'use client';
 
+import type React from 'react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,6 +35,7 @@ export function TicketForm() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [screenshots, setScreenshots] = useState<string[]>([]);
+    const [isDragging, setIsDragging] = useState(false);
 
     const {
         register,
@@ -44,20 +46,42 @@ export function TicketForm() {
         resolver: zodResolver(ticketSchema),
     });
 
+    const processFiles = (files: File[]) => {
+        const remainingSlots = Math.max(0, 3 - screenshots.length);
+        const selectedFiles = files.slice(0, remainingSlots);
+
+        selectedFiles.forEach((file) => {
+            if (!file.type.startsWith('image/')) {
+                return; // ignore non-images
+            }
+            // Skip very large files to prevent huge payloads
+            if (file.size > 5 * 1024 * 1024) {
+                setError('Please upload images under 5MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                if (typeof reader.result === 'string') {
+                    setScreenshots((prev) => [...prev, reader.result as string]);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            const files = Array.from(e.target.files);
-            const selectedFiles = files.slice(0, 3);
+            processFiles(Array.from(e.target.files));
+        }
+    };
 
-            selectedFiles.forEach((file) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    if (typeof reader.result === 'string') {
-                        setScreenshots((prev) => [...prev, reader.result as string]);
-                    }
-                };
-                reader.readAsDataURL(file);
-            });
+    const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            processFiles(Array.from(e.dataTransfer.files));
+            e.dataTransfer.clearData();
         }
     };
 
@@ -222,7 +246,18 @@ export function TicketForm() {
             <div className="space-y-2">
                 <label className="text-sm font-semibold text-white ml-1">Screenshots (Optional)</label>
                 <div className="w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-white/10 border-dashed rounded-xl cursor-pointer hover:bg-white/5 transition-colors group">
+                    <label
+                        className={clsx(
+                            "flex flex-col items-center justify-center w-full h-32 border-2 border-white/10 border-dashed rounded-xl cursor-pointer transition-colors group",
+                            isDragging ? "bg-white/10 border-white/30" : "hover:bg-white/5"
+                        )}
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDragging(true);
+                        }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={handleDrop}
+                    >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             <Upload className="w-8 h-8 mb-3 text-gray-400 group-hover:text-white transition-colors" />
                             <p className="text-sm text-gray-400 group-hover:text-gray-300">

@@ -53,11 +53,12 @@ export async function POST(request: Request) {
             return null;
         }).filter(Boolean) as any[];
 
-        await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"IT Support" <support@chmoney.co.uk>',
-            to: 'messa@chmoney.co.uk',
-            subject: `[${validatedData.website}] New Ticket: ${validatedData.subject}`,
-            text: `
+        try {
+            await transporter.sendMail({
+                from: process.env.SMTP_FROM || '"IT Support" <support@chmoney.co.uk>',
+                to: 'messa@chmoney.co.uk',
+                subject: `[${validatedData.website}] New Ticket: ${validatedData.subject}`,
+                text: `
         New Ticket Submitted
         
         Name: ${validatedData.name}
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
         Description:
         ${validatedData.description}
       `,
-            html: `
+                html: `
         <h1>New Ticket Submitted</h1>
         <p><strong>Name:</strong> ${validatedData.name}</p>
         <p><strong>Email:</strong> ${validatedData.email}</p>
@@ -78,8 +79,12 @@ export async function POST(request: Request) {
         <p><strong>Description:</strong></p>
         <p>${validatedData.description.replace(/\n/g, '<br>')}</p>
       `,
-            attachments: attachments,
-        });
+                attachments: attachments,
+            });
+        } catch (mailError) {
+            // Don't block ticket creation if email fails; log for investigation
+            console.error('Failed to send ticket email', mailError);
+        }
 
         return NextResponse.json({ success: true, ticket });
     } catch (error) {
