@@ -38,8 +38,14 @@ export async function clearCustomerSession() {
 export async function getCustomerSessionEmail(): Promise<string | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(CUSTOMER_COOKIE)?.value;
-  if (!token) return null;
+  if (!token) {
+    console.warn('[customer auth] missing customer_session cookie');
+    return null;
+  }
   const payload = verifySession<{ email: string; scope?: string }>(token);
-  if (!payload?.email) return null;
+  if (!payload?.email) {
+    console.warn('[customer auth] invalid session token');
+    return null;
+  }
   return payload.email.toLowerCase();
 }
