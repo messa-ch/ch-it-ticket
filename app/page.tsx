@@ -1,28 +1,22 @@
-import { TicketForm } from '@/components/ticket-form';
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Background Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/30 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/30 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="max-w-4xl w-full space-y-12 relative z-10">
-        <div className="text-center space-y-4">
-          <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight drop-shadow-lg">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-              CH Support
-            </span>
-          </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            Premium support for our valued partners. Submit your request and experience seamless resolution.
-          </p>
-        </div>
-
-        <TicketForm />
-
-        <div className="text-center text-sm text-gray-500 mt-12">
-          &copy; {new Date().getFullYear()} CH Money. All rights reserved.
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-blue-900 px-6">
+      <div className="max-w-2xl w-full text-center space-y-6 bg-black/30 border border-white/10 rounded-3xl p-10 shadow-2xl backdrop-blur">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-white">
+          Need help?
+        </h1>
+        <p className="text-lg text-gray-200">
+          Head to our support portal to open a ticket and we&apos;ll get back to you quickly.
+        </p>
+        <div className="flex justify-center">
+          <Link
+            href="/support"
+            className="inline-flex items-center justify-center px-6 py-3 text-lg font-semibold text-black bg-white rounded-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5"
+          >
+            Go to Support
+          </Link>
         </div>
       </div>
     </main>
