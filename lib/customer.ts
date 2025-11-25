@@ -3,17 +3,31 @@ import { signSession, verifySession } from './auth';
 
 const CUSTOMER_COOKIE = 'customer_session';
 const CUSTOMER_MAX_AGE = 60 * 30; // 30 minutes
+const secureCookie = process.env.NODE_ENV === 'production';
+
+function buildCustomerSessionCookie(email: string) {
+  const token = signSession({ email, scope: 'customer' });
+  return {
+    name: CUSTOMER_COOKIE,
+    value: token,
+    options: {
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      secure: secureCookie,
+      path: '/',
+      maxAge: CUSTOMER_MAX_AGE,
+    },
+  };
+}
 
 export async function setCustomerSession(email: string) {
   const cookieStore = await cookies();
-  const token = signSession({ email, scope: 'customer' });
-  cookieStore.set(CUSTOMER_COOKIE, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: CUSTOMER_MAX_AGE,
-  });
+  const cookie = buildCustomerSessionCookie(email);
+  cookieStore.set(cookie.name, cookie.value, cookie.options);
+}
+
+export function getCustomerSessionCookie(email: string) {
+  return buildCustomerSessionCookie(email);
 }
 
 export async function clearCustomerSession() {

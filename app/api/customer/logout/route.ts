@@ -5,5 +5,7 @@ import { clearCustomerSession } from '@/lib/customer';
 
 export async function POST() {
   await clearCustomerSession();
-  return NextResponse.json({ success: true });
+  const res = NextResponse.json({ success: true });
+  res.cookies.set('customer_session', '', { path: '/', maxAge: 0 });
+  return res;
 }

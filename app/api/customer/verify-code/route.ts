@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { setCustomerSession } from '@/lib/customer';
+import { getCustomerSessionCookie, setCustomerSession } from '@/lib/customer';
 
 export async function POST(request: Request) {
   try {
@@ -35,7 +35,10 @@ export async function POST(request: Request) {
 
     await setCustomerSession(email);
 
-    return NextResponse.json({ success: true });
+    const res = NextResponse.json({ success: true });
+    const cookie = getCustomerSessionCookie(email);
+    res.cookies.set(cookie.name, cookie.value, cookie.options);
+    return res;
   } catch (error) {
     console.error('customer verify-code error', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
