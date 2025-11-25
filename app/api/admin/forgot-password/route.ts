@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     });
 
     const mailer = getMailer();
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/support/admin/reset?token=${token}`;
+    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/admin/reset-password?token=${token}`;
 
     try {
       await mailer.sendMail({
