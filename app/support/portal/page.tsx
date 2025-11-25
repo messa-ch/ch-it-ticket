@@ -29,6 +29,8 @@ export default function CustomerPortalPage() {
   const [loading, setLoading] = useState(false);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [feedbackDraft, setFeedbackDraft] = useState<Record<string, string>>({});
+  const [ratingDraft, setRatingDraft] = useState<Record<string, number>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const loadTickets = async () => {
     try {
@@ -102,6 +104,11 @@ export default function CustomerPortalPage() {
 
   const submitRating = async (ticketId: string, rating: number, feedback?: string) => {
     try {
+      if (!rating || rating < 1 || rating > 5) {
+        setError('Please pick a rating 1-5.');
+        return;
+      }
+      setSavingId(ticketId);
       const res = await fetch(`/api/customer/tickets/${ticketId}/rating`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,6 +120,8 @@ export default function CustomerPortalPage() {
       setMessage('Thanks for your feedback!');
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -248,21 +257,27 @@ export default function CustomerPortalPage() {
                         <div className="flex items-center gap-2">
                           <p className="text-sm text-gray-200">Rate this ticket:</p>
                           {[1, 2, 3, 4, 5].map((star) => {
-                            const active = hoverRating !== null ? star <= hoverRating : star <= (ticket.rating ?? 0);
+                            const current = ratingDraft[ticket.id] ?? ticket.rating ?? 0;
+                            const active = hoverRating !== null ? star <= hoverRating : star <= current;
                             return (
                               <button
                                 key={star}
                                 className={`text-lg transition ${active ? 'text-yellow-300' : 'text-gray-500'} hover:scale-110`}
                                 onMouseEnter={() => setHoverRating(star)}
                                 onMouseLeave={() => setHoverRating(null)}
-                                onClick={() => submitRating(ticket.id, star, feedbackDraft[ticket.id])}
+                                onClick={() =>
+                                  setRatingDraft((prev) => ({
+                                    ...prev,
+                                    [ticket.id]: star,
+                                  }))
+                                }
                               >
                                 ★
                               </button>
                             );
                           })}
                           <span className="text-sm text-gray-300">
-                            {(hoverRating ?? ticket.rating) ? `${hoverRating ?? ticket.rating} / 5` : ''}
+                            {(hoverRating ?? ratingDraft[ticket.id] ?? ticket.rating) ? `${hoverRating ?? ratingDraft[ticket.id] ?? ticket.rating} / 5` : ''}
                           </span>
                         </div>
                         <div className="space-y-1">
@@ -277,12 +292,20 @@ export default function CustomerPortalPage() {
                                 [ticket.id]: e.target.value,
                               }))
                             }
-                            onBlur={() => {
-                              if (ticket.rating) {
-                                submitRating(ticket.id, ticket.rating, feedbackDraft[ticket.id] ?? ticket.feedback);
-                              }
-                            }}
                           />
+                          <button
+                            className="px-4 py-2 rounded bg-white/10 border border-white/20 hover:bg-white/20 text-sm"
+                            onClick={() =>
+                              submitRating(
+                                ticket.id,
+                                ratingDraft[ticket.id] ?? ticket.rating ?? 0,
+                                feedbackDraft[ticket.id] ?? ticket.feedback ?? ''
+                              )
+                            }
+                            disabled={savingId === ticket.id}
+                          >
+                            {savingId === ticket.id ? 'Saving...' : 'Save rating & feedback'}
+                          </button>
                         </div>
                         {ticket.feedback && !feedbackDraft[ticket.id] && (
                           <p className="text-sm text-gray-200">Your feedback: {ticket.feedback}</p>

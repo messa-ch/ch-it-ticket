@@ -15,6 +15,7 @@ type Ticket = {
   rating: number | null;
   urgency: number;
   note: string | null;
+  feedback: string | null;
 };
 
 type View = 'login' | 'forgot' | 'dashboard';
@@ -27,8 +28,9 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [currentAdmin, setCurrentAdmin] = useState<string | null>(null);
-  const [changePwState, setChangePwState] = useState({ currentPassword: '', newPassword: '', message: '' });
   const [forgotSent, setForgotSent] = useState(false);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [noteSavingId, setNoteSavingId] = useState<string | null>(null);
 
   const loadSession = async () => {
     try {
@@ -151,6 +153,7 @@ export default function AdminPage() {
       ...t,
       createdLabel: new Date(t.createdAt).toLocaleString(),
       note: t.note ?? '',
+      feedback: t.feedback ?? '',
     }));
   }, [tickets]);
 
@@ -292,9 +295,10 @@ export default function AdminPage() {
                   <th className="text-left p-2">Urgency</th>
                   <th className="text-left p-2">Website</th>
                   <th className="text-left p-2">Created</th>
-                    <th className="text-left p-2">Status</th>
-                    <th className="text-left p-2">Action</th>
-                    <th className="text-left p-2">Note (visible to customer)</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Action</th>
+                  <th className="text-left p-2">Note (visible to customer)</th>
+                  <th className="text-left p-2">Feedback</th>
                 </tr>
               </thead>
               <tbody>
@@ -332,21 +336,34 @@ export default function AdminPage() {
                       <textarea
                         className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm"
                         rows={2}
-                        defaultValue={ticket.note}
-                        onBlur={async (e) => {
-                          const note = e.target.value;
+                        value={noteDrafts[ticket.id] ?? ticket.note ?? ''}
+                        onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [ticket.id]: e.target.value }))}
+                      />
+                      <button
+                        className="mt-2 text-xs px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20"
+                        onClick={async () => {
+                          setNoteSavingId(ticket.id);
                           try {
                             const res = await fetch(`/api/admin/tickets/${ticket.id}/note`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ note }),
+                              body: JSON.stringify({ note: noteDrafts[ticket.id] ?? ticket.note ?? '' }),
                             });
                             if (!res.ok) throw new Error('Failed to save note');
+                            await loadTickets();
                           } catch (err) {
                             setError((err as Error).message);
+                          } finally {
+                            setNoteSavingId(null);
                           }
                         }}
-                      />
+                        disabled={noteSavingId === ticket.id}
+                      >
+                        {noteSavingId === ticket.id ? 'Saving...' : 'Save note'}
+                      </button>
+                    </td>
+                    <td className="p-2 text-sm text-gray-200 whitespace-pre-line">
+                      {ticket.feedback || '—'}
                     </td>
                   </tr>
                 ))}

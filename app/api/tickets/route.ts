@@ -82,6 +82,7 @@ export async function POST(request: Request) {
             await transporter.sendMail({
                 from: smtpFrom,
                 to: 'messa@chmoney.co.uk',
+                cc: 'it@wednesdayfs.co.uk',
                 subject: `[${validatedData.website}] New Ticket: ${validatedData.subject}`,
                 text: `
         New Ticket Submitted
