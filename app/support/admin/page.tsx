@@ -11,11 +11,12 @@ type Ticket = {
   description: string;
   website: string;
   createdAt: string;
-  status: 'OPEN' | 'IN PROGRESS' | 'CLOSED';
+  status: 'OPEN' | 'IN PROGRESS' | 'CLOSED' | 'REJECTED';
   rating: number | null;
   urgency: number;
   note: string | null;
   feedback: string | null;
+  issueType: 'GENERAL' | 'WEBSITE';
 };
 
 type View = 'login' | 'forgot' | 'dashboard';
@@ -31,6 +32,9 @@ export default function AdminPage() {
   const [forgotSent, setForgotSent] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [noteSavingId, setNoteSavingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | Ticket['status']>('ALL');
+  const [ratingFilter, setRatingFilter] = useState<'ALL' | 'RATED' | 'UNRATED'>('ALL');
+  const [feedbackFilter, setFeedbackFilter] = useState<'ALL' | 'HAS' | 'NONE'>('ALL');
 
   const loadSession = async () => {
     try {
@@ -96,7 +100,7 @@ export default function AdminPage() {
     setView('login');
   };
 
-  const toggleStatus = async (id: string, status: 'OPEN' | 'IN PROGRESS' | 'CLOSED') => {
+  const toggleStatus = async (id: string, status: Ticket['status']) => {
     try {
       const res = await fetch(`/api/admin/tickets/${id}/status`, {
         method: 'PATCH',
@@ -135,6 +139,25 @@ export default function AdminPage() {
       note: t.note ?? '',
       feedback: t.feedback ?? '',
     }));
+  }, [tickets]);
+
+  const filteredTickets = useMemo(() => {
+    return formattedTickets.filter((t) => {
+      if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
+      if (ratingFilter === 'RATED' && !t.rating) return false;
+      if (ratingFilter === 'UNRATED' && t.rating) return false;
+      if (feedbackFilter === 'HAS' && !t.feedback) return false;
+      if (feedbackFilter === 'NONE' && t.feedback) return false;
+      return true;
+    });
+  }, [formattedTickets, statusFilter, ratingFilter, feedbackFilter]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { OPEN: 0, 'IN PROGRESS': 0, CLOSED: 0, REJECTED: 0 };
+    for (const t of tickets) {
+      counts[t.status] = (counts[t.status] || 0) + 1;
+    }
+    return counts;
   }, [tickets]);
 
   if (isLoading) {
@@ -256,14 +279,62 @@ export default function AdminPage() {
         )}
 
         <section className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Tickets (createdAt asc)</h2>
-            <button
-              onClick={loadTickets}
-              className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/15 text-sm"
-            >
-              Refresh
-            </button>
+          <div className="flex flex-col gap-4 mb-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <h2 className="text-xl font-semibold">Tickets (createdAt asc)</h2>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="px-2 py-1 rounded bg-white/10 border border-white/20">Open: {statusCounts.OPEN}</span>
+                <span className="px-2 py-1 rounded bg-white/10 border border-white/20">In Progress: {statusCounts['IN PROGRESS']}</span>
+                <span className="px-2 py-1 rounded bg-white/10 border border-white/20">Closed: {statusCounts.CLOSED}</span>
+                <span className="px-2 py-1 rounded bg-white/10 border border-white/20">Rejected: {statusCounts.REJECTED}</span>
+              </div>
+              <button
+                onClick={loadTickets}
+                className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/15 text-sm"
+              >
+                Refresh
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+              <div>
+                <label className="block text-gray-300 mb-1">Status</label>
+                <select
+                  className="w-full bg-black/30 border border-white/10 rounded px-2 py-2"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                >
+                  <option value="ALL">All</option>
+                  <option value="OPEN">Open</option>
+                  <option value="IN PROGRESS">In Progress</option>
+                  <option value="CLOSED">Closed</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-300 mb-1">Rating</label>
+                <select
+                  className="w-full bg-black/30 border border-white/10 rounded px-2 py-2"
+                  value={ratingFilter}
+                  onChange={(e) => setRatingFilter(e.target.value as any)}
+                >
+                  <option value="ALL">All</option>
+                  <option value="RATED">Rated</option>
+                  <option value="UNRATED">Not rated</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-300 mb-1">Feedback</label>
+                <select
+                  className="w-full bg-black/30 border border-white/10 rounded px-2 py-2"
+                  value={feedbackFilter}
+                  onChange={(e) => setFeedbackFilter(e.target.value as any)}
+                >
+                  <option value="ALL">All</option>
+                  <option value="HAS">Has feedback</option>
+                  <option value="NONE">No feedback</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -272,6 +343,7 @@ export default function AdminPage() {
                   <th className="text-left p-2">Name</th>
                   <th className="text-left p-2">Email</th>
                   <th className="text-left p-2">Subject</th>
+                  <th className="text-left p-2">Type</th>
                   <th className="text-left p-2">Urgency</th>
                   <th className="text-left p-2">Website</th>
                   <th className="text-left p-2">Created</th>
@@ -282,18 +354,25 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {formattedTickets.map((ticket) => (
+                {filteredTickets.map((ticket) => (
                   <tr key={ticket.id} className="border-b border-white/5">
                     <td className="p-2">{ticket.name}</td>
                     <td className="p-2">{ticket.email}</td>
                     <td className="p-2">{ticket.subject}</td>
+                    <td className="p-2">{ticket.issueType === 'GENERAL' ? 'General' : 'Website'}</td>
                     <td className="p-2">{ticket.urgency}</td>
                     <td className="p-2">{ticket.website}</td>
                     <td className="p-2 text-gray-300">{ticket.createdLabel}</td>
                     <td className="p-2">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          ticket.status === 'OPEN' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-200'
+                          ticket.status === 'OPEN'
+                            ? 'bg-green-500/20 text-green-300'
+                            : ticket.status === 'IN PROGRESS'
+                            ? 'bg-yellow-500/20 text-yellow-200'
+                            : ticket.status === 'CLOSED'
+                            ? 'bg-gray-500/20 text-gray-200'
+                            : 'bg-red-500/20 text-red-300'
                         }`}
                       >
                         {ticket.status}
@@ -304,12 +383,13 @@ export default function AdminPage() {
                         className="bg-black/30 border border-white/10 rounded px-2 py-1 text-xs"
                         value={ticket.status}
                         onChange={(e) =>
-                          toggleStatus(ticket.id, e.target.value as 'OPEN' | 'IN PROGRESS' | 'CLOSED')
+                          toggleStatus(ticket.id, e.target.value as Ticket['status'])
                         }
                       >
                         <option value="OPEN">OPEN</option>
                         <option value="IN PROGRESS">IN PROGRESS</option>
                         <option value="CLOSED">CLOSED</option>
+                        <option value="REJECTED">REJECTED</option>
                       </select>
                     </td>
                     <td className="p-2">

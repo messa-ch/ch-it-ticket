@@ -24,6 +24,7 @@ model Ticket {
   urgency     Int      @default(3)
   feedback    String?
   note        String?
+  issueType   String   @default("GENERAL") // GENERAL or WEBSITE
 }
 
 model AdminUser {

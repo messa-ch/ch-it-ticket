@@ -10,11 +10,12 @@ type Ticket = {
   description: string;
   website: string;
   createdAt: string;
-  status: 'OPEN' | 'IN PROGRESS' | 'CLOSED';
+  status: 'OPEN' | 'IN PROGRESS' | 'CLOSED' | 'REJECTED';
   rating: number | null;
   urgency: number;
   feedback: string | null;
   note: string | null;
+  issueType: 'GENERAL' | 'WEBSITE';
 };
 
 type View = 'email' | 'code' | 'tickets';
@@ -31,6 +32,9 @@ export default function CustomerPortalPage() {
   const [feedbackDraft, setFeedbackDraft] = useState<Record<string, string>>({});
   const [ratingDraft, setRatingDraft] = useState<Record<string, number>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | Ticket['status']>('ALL');
+  const [ratingFilter, setRatingFilter] = useState<'ALL' | 'RATED' | 'UNRATED'>('ALL');
+  const [feedbackFilter, setFeedbackFilter] = useState<'ALL' | 'HAS' | 'NONE'>('ALL');
 
   const loadTickets = async () => {
     try {
@@ -126,10 +130,18 @@ export default function CustomerPortalPage() {
   };
 
   const sortedTickets = useMemo(() => {
-    return [...tickets].sort(
+    const base = [...tickets].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
-  }, [tickets]);
+    return base.filter((t) => {
+      if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
+      if (ratingFilter === 'RATED' && !t.rating) return false;
+      if (ratingFilter === 'UNRATED' && t.rating) return false;
+      if (feedbackFilter === 'HAS' && !t.feedback) return false;
+      if (feedbackFilter === 'NONE' && t.feedback) return false;
+      return true;
+    });
+  }, [tickets, statusFilter, ratingFilter, feedbackFilter]);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white px-4 py-10">
@@ -214,7 +226,8 @@ export default function CustomerPortalPage() {
 
         {view === 'tickets' && (
           <section className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Your tickets</h2>
               <button
                 className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/15 text-sm"
@@ -222,6 +235,47 @@ export default function CustomerPortalPage() {
               >
                 Refresh
               </button>
+            </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <label className="block text-gray-300 mb-1">Status</label>
+                  <select
+                    className="w-full bg-black/30 border border-white/10 rounded px-2 py-2"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                  >
+                    <option value="ALL">All</option>
+                    <option value="OPEN">Open</option>
+                    <option value="IN PROGRESS">In Progress</option>
+                    <option value="CLOSED">Closed</option>
+                    <option value="REJECTED">Rejected</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-300 mb-1">Rating</label>
+                  <select
+                    className="w-full bg-black/30 border border-white/10 rounded px-2 py-2"
+                    value={ratingFilter}
+                    onChange={(e) => setRatingFilter(e.target.value as any)}
+                  >
+                    <option value="ALL">All</option>
+                    <option value="RATED">Rated</option>
+                    <option value="UNRATED">Not rated</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-300 mb-1">Feedback</label>
+                  <select
+                    className="w-full bg-black/30 border border-white/10 rounded px-2 py-2"
+                    value={feedbackFilter}
+                    onChange={(e) => setFeedbackFilter(e.target.value as any)}
+                  >
+                    <option value="ALL">All</option>
+                    <option value="HAS">Has feedback</option>
+                    <option value="NONE">No feedback</option>
+                  </select>
+                </div>
+              </div>
             </div>
             {sortedTickets.length === 0 ? (
               <p className="text-sm text-gray-300">No tickets found for this email.</p>
@@ -239,13 +293,15 @@ export default function CustomerPortalPage() {
                       <p className="text-sm text-blue-200 mt-1">Note from support: {ticket.note}</p>
                     )}
                   </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs ${
-                      ticket.status === 'OPEN'
-                        ? 'bg-green-500/20 text-green-200'
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs ${
+                          ticket.status === 'OPEN'
+                            ? 'bg-green-500/20 text-green-200'
                             : ticket.status === 'IN PROGRESS'
                             ? 'bg-yellow-500/20 text-yellow-200'
-                            : 'bg-gray-500/20 text-gray-200'
+                            : ticket.status === 'CLOSED'
+                            ? 'bg-gray-500/20 text-gray-200'
+                            : 'bg-red-500/20 text-red-200'
                         }`}
                       >
                         {ticket.status}

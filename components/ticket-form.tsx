@@ -23,9 +23,13 @@ const ticketSchema = z.object({
     email: z.string().email('Invalid email address'),
     subject: z.string().min(1, 'Subject is required'),
     description: z.string().min(1, 'Description is required'),
-    website: z.string().min(1, 'Please select a website'),
+    issueType: z.enum(['GENERAL', 'WEBSITE']),
+    website: z.string().optional(),
     urgency: z.number().min(1).max(5),
-});
+}).refine(
+    (data) => (data.issueType === 'GENERAL' ? true : Boolean(data.website && data.website.length)),
+    { message: 'Please select a website', path: ['website'] }
+);
 
 type TicketFormData = z.infer<typeof ticketSchema>;
 
@@ -41,10 +45,11 @@ export function TicketForm() {
         handleSubmit,
         reset,
         watch,
+        setValue,
         formState: { errors },
     } = useForm<TicketFormData>({
         resolver: zodResolver(ticketSchema),
-        defaultValues: { urgency: 3 },
+        defaultValues: { urgency: 3, issueType: 'GENERAL', website: 'General IT' },
     });
 
     const processFiles = (files: File[]) => {
@@ -193,12 +198,41 @@ export function TicketForm() {
             </div>
 
             <div className="space-y-2">
-                <label className="text-sm font-semibold text-white ml-1">Website</label>
-                <div className="relative">
+                <label className="text-sm font-semibold text-white ml-1">Issue type</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className="flex items-center gap-2 text-sm text-gray-200 bg-white/5 border border-white/10 rounded-lg px-4 py-3 cursor-pointer">
+                        <input
+                            type="radio"
+                            value="GENERAL"
+                            {...register('issueType')}
+                            onChange={(e) => {
+                                setValue('issueType', e.target.value as any);
+                                setValue('website', 'General IT');
+                            }}
+                            checked={watch('issueType') === 'GENERAL'}
+                        />
+                        General IT issue / suggestion
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-200 bg-white/5 border border-white/10 rounded-lg px-4 py-3 cursor-pointer">
+                        <input
+                            type="radio"
+                            value="WEBSITE"
+                            {...register('issueType')}
+                            onChange={(e) => {
+                                setValue('issueType', e.target.value as any);
+                                setValue('website', '');
+                            }}
+                            checked={watch('issueType') === 'WEBSITE'}
+                        />
+                        Specific website
+                    </label>
+                </div>
+                <div className="relative mt-3">
                     <select
                         {...register('website')}
+                        disabled={watch('issueType') === 'GENERAL'}
                         className={clsx(
-                            "w-full px-5 py-3 rounded-xl outline-none transition-all appearance-none glass-input text-gray-300",
+                            "w-full px-5 py-3 rounded-xl outline-none transition-all appearance-none glass-input text-gray-300 disabled:opacity-60 disabled:cursor-not-allowed",
                             errors.website && "border-red-500/50 focus:border-red-500"
                         )}
                         style={{ backgroundColor: 'rgba(0,0,0,0.2)' }} // Fix for select dropdown background

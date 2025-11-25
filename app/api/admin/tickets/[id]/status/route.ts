@@ -14,7 +14,7 @@ export async function PATCH(
 
   const { status } = await request.json();
   const { id } = await params;
-  const allowed = ['OPEN', 'IN PROGRESS', 'CLOSED'];
+  const allowed = ['OPEN', 'IN PROGRESS', 'CLOSED', 'REJECTED'];
   if (!allowed.includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Ticket" ADD COLUMN     "issueType" TEXT NOT NULL DEFAULT 'GENERAL';
