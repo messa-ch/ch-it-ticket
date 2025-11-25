@@ -5,6 +5,20 @@ const CUSTOMER_COOKIE = 'customer_session';
 const CUSTOMER_MAX_AGE = 60 * 30; // 30 minutes
 const secureCookie = process.env.NODE_ENV === 'production';
 
+function getCookieDomain() {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+  const value = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname;
+    // Avoid setting domain for localhost or invalid hostnames
+    if (!hostname || hostname === 'localhost') return undefined;
+    return hostname;
+  } catch {
+    return undefined;
+  }
+}
+
 function buildCustomerSessionCookie(email: string) {
   const token = signSession({ email, scope: 'customer' });
   return {
@@ -16,6 +30,7 @@ function buildCustomerSessionCookie(email: string) {
       secure: secureCookie,
       path: '/',
       maxAge: CUSTOMER_MAX_AGE,
+      domain: getCookieDomain(),
     },
   };
 }
