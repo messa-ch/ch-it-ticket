@@ -30,7 +30,6 @@ function buildCustomerSessionCookie(email: string) {
       secure: secureCookie,
       path: '/',
       maxAge: CUSTOMER_MAX_AGE,
-      domain: getCookieDomain(),
     },
   };
 }
