@@ -110,26 +110,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setChangePwState((s) => ({ ...s, message: '' }));
-    try {
-      const res = await fetch('/api/admin/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: changePwState.currentPassword,
-          newPassword: changePwState.newPassword,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Failed to change password');
-      setChangePwState({ currentPassword: '', newPassword: '', message: 'Password changed' });
-    } catch (err) {
-      setChangePwState((s) => ({ ...s, message: (err as Error).message }));
-    }
-  };
-
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotSent(false);
