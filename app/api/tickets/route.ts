@@ -16,10 +16,39 @@ const ticketSchema = z.object({
     screenshots: z.array(z.string()).optional(), // Array of base64 strings
 });
 
+const exceptionEmails =
+  process.env.ALLOWED_EMAIL_EXCEPTIONS?.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean) || [];
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const validatedData = ticketSchema.parse(body);
+
+        const emailLower = validatedData.email.toLowerCase();
+        const emailDomain = emailLower.split('@')[1] || '';
+
+        if (!exceptionEmails.includes(emailLower)) {
+            try {
+                const domains = await prisma.$queryRaw<Array<{ domain: string }>>`
+                  SELECT DISTINCT split_part(email, '@', 2) AS domain
+                  FROM wfs.users
+                  WHERE email NOT LIKE '%@gmail.com'
+                `;
+                const allowedDomains = new Set(domains.map((d) => d.domain.toLowerCase()));
+                if (!allowedDomains.has(emailDomain)) {
+                    return NextResponse.json(
+                        { error: 'Email domain not allowed for support requests.' },
+                        { status: 400 }
+                    );
+                }
+            } catch (lookupError) {
+                console.error('Domain lookup failed', lookupError);
+                return NextResponse.json(
+                    { error: 'Unable to verify email domain. Please try again later.' },
+                    { status: 500 }
+                );
+            }
+        }
 
         const smtpHost = process.env.SMTP_HOST;
         const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
