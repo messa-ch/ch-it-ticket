@@ -5,8 +5,8 @@ import "./globals.css";
 const outfit = Outfit({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CH Support | Premium IT Services",
-  description: "Submit your IT support tickets with ease.",
+  title: "CH Finance IT Support",
+  description: "Premium IT support for our clients.",
 };
 
 export default function RootLayout({

@@ -39,7 +39,6 @@ export async function getCustomerSessionEmail(): Promise<string | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(CUSTOMER_COOKIE)?.value;
   if (!token) {
-    console.warn('[customer auth] missing customer_session cookie');
     return null;
   }
   const payload = verifySession<{ email: string; scope?: string }>(token);
