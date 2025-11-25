@@ -11,7 +11,7 @@ const SESSION_COOKIE = 'admin_session';
 const SESSION_MAX_AGE = 60 * 60 * 24; // 1 day
 
 export async function getSessionAdmin() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const payload = verifySession<{ email: string; hash: string }>(token);
@@ -24,7 +24,7 @@ export async function getSessionAdmin() {
 }
 
 export async function setSessionCookie(email: string, passwordHash: string) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = signSession({ email, hash: passwordHash });
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -36,6 +36,6 @@ export async function setSessionCookie(email: string, passwordHash: string) {
 }
 
 export async function clearSessionCookie() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
 }

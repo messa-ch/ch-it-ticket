@@ -1,25 +1,26 @@
 export const runtime = 'nodejs';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionAdmin } from '@/lib/admin';
 import { getMailer, getFromAddress } from '@/lib/mailer';
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const admin = await getSessionAdmin();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { status } = await request.json();
+  const { id } = await params;
   const allowed = ['OPEN', 'IN PROGRESS', 'CLOSED'];
   if (!allowed.includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }
 
   const ticket = await prisma.ticket.update({
-    where: { id: params.id },
+    where: { id },
     data: { status },
   });
 

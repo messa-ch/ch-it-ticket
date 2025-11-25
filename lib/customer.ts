@@ -5,7 +5,7 @@ const CUSTOMER_COOKIE = 'customer_session';
 const CUSTOMER_MAX_AGE = 60 * 30; // 30 minutes
 
 export async function setCustomerSession(email: string) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = signSession({ email, scope: 'customer' });
   cookieStore.set(CUSTOMER_COOKIE, token, {
     httpOnly: true,
@@ -16,13 +16,13 @@ export async function setCustomerSession(email: string) {
   });
 }
 
-export function clearCustomerSession() {
-  const cookieStore = cookies();
+export async function clearCustomerSession() {
+  const cookieStore = await cookies();
   cookieStore.set(CUSTOMER_COOKIE, '', { path: '/', maxAge: 0 });
 }
 
-export function getCustomerSessionEmail(): string | null {
-  const cookieStore = cookies();
+export async function getCustomerSessionEmail(): Promise<string | null> {
+  const cookieStore = await cookies();
   const token = cookieStore.get(CUSTOMER_COOKIE)?.value;
   if (!token) return null;
   const payload = verifySession<{ email: string; scope?: string }>(token);

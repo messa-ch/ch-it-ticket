@@ -4,6 +4,6 @@ import { NextResponse } from 'next/server';
 import { clearCustomerSession } from '@/lib/customer';
 
 export async function POST() {
-  clearCustomerSession();
+  await clearCustomerSession();
   return NextResponse.json({ success: true });
 }

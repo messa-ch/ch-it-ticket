@@ -1,18 +1,20 @@
 export const runtime = 'nodejs';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCustomerSessionEmail } from '@/lib/customer';
 
 export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const email = getCustomerSessionEmail();
+    const email = await getCustomerSessionEmail();
     if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const ticket = await prisma.ticket.findUnique({ where: { id: params.id } });
+    const { id } = await params;
+
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
     if (!ticket || ticket.email.toLowerCase() !== email) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
@@ -27,7 +29,7 @@ export async function POST(
     }
 
     const updated = await prisma.ticket.update({
-      where: { id: params.id },
+      where: { id },
       data: { rating },
     });
 

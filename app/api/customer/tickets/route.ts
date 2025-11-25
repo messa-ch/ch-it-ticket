@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getCustomerSessionEmail } from '@/lib/customer';
 
 export async function GET() {
-  const email = getCustomerSessionEmail();
+  const email = await getCustomerSessionEmail();
   if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const tickets = await prisma.ticket.findMany({
