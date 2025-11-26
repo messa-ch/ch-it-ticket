@@ -13,7 +13,8 @@ const websites = [
     'WFS Brokers',
     'WednesdayFS',
     'MoneyPlusAdvisor',
-    'CHFinance',
+    'CH Finance',
+    'CH Money',
     'SecureALoan',
     'ProtectionPlusAdvisor',
 ];
