@@ -674,7 +674,7 @@ export default function AdminPage() {
                     <div className="flex items-center justify-between text-xs text-gray-300 mb-2">
                       <span className="font-semibold text-white">
                         {note.author}
-                        {note.authorRef ? ` (${note.authorRef})` : ''}
+                        {note.author !== 'ADMIN' && note.authorRef ? ` (${note.authorRef})` : ''}
                       </span>
                       <span>{new Date(note.createdAt).toLocaleString()}</span>
                     </div>
