@@ -20,11 +20,23 @@ export async function POST(
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
+    if (ticket.status === 'OPEN' || ticket.status === 'IN PROGRESS') {
+      return NextResponse.json({ error: 'Ticket is already active.' }, { status: 400 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
     if (!reason) {
       return NextResponse.json({ error: 'Please provide a reason to reopen this ticket.' }, { status: 400 });
     }
+
+    const updated = await prisma.ticket.update({
+      where: { id },
+      data: {
+        status: 'OPEN',
+        note: `${ticket.note ? `${ticket.note}\n\n` : ''}Reopen requested by customer: ${reason}`,
+      },
+    });
 
     const transporter = getMailer();
     const from = getFromAddress();
@@ -35,7 +47,7 @@ export async function POST(
       subject: `Reopen request for ticket ${ticket.id}`,
       text: [
         `Customer ${ticket.name} (${ticket.email}) requested to reopen ticket ${ticket.id}.`,
-        `Status: ${ticket.status}`,
+        `Status: ${updated.status} (was ${ticket.status})`,
         `Website: ${ticket.website}`,
         `Subject: ${ticket.subject}`,
         `Created: ${new Date(ticket.createdAt).toISOString()}`,
@@ -49,7 +61,7 @@ export async function POST(
       html: `
         <h2>Reopen request for ticket ${ticket.id}</h2>
         <p><strong>Customer:</strong> ${ticket.name} (${ticket.email})</p>
-        <p><strong>Status:</strong> ${ticket.status}</p>
+        <p><strong>Status:</strong> ${updated.status} (was ${ticket.status})</p>
         <p><strong>Website:</strong> ${ticket.website}</p>
         <p><strong>Subject:</strong> ${ticket.subject}</p>
         <p><strong>Created:</strong> ${new Date(ticket.createdAt).toISOString()}</p>

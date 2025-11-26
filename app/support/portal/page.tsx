@@ -149,7 +149,8 @@ export default function CustomerPortalPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to send reopen request');
-      setMessage('Reopen request sent to support.');
+      await loadTickets();
+      setMessage('Ticket reopened and support notified.');
       setReopenReason((prev) => ({ ...prev, [ticketId]: '' }));
     } catch (err) {
       setError((err as Error).message);
