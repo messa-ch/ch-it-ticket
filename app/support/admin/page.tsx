@@ -504,7 +504,7 @@ export default function AdminPage() {
                   <th className="text-left p-2">Created</th>
                   <th className="text-left p-2">Status</th>
                   <th className="text-left p-2">Action</th>
-                  <th className="text-left p-2">Note (visible to customer)</th>
+                  <th className="text-left p-2 w-[280px]">Note (visible to customer)</th>
                   <th className="text-left p-2">Feedback</th>
                   </tr>
                 </thead>
@@ -555,46 +555,48 @@ export default function AdminPage() {
                         <option value="REJECTED">REJECTED</option>
                       </select>
                     </td>
-                    <td className="p-2">
+                    <td className="p-2 align-top w-[280px]">
                       <textarea
-                        className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm"
+                        className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm min-h-[90px]"
                         rows={2}
                         value={noteDrafts[ticket.id] ?? ticket.note ?? ''}
                         onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [ticket.id]: e.target.value }))}
                       />
-                      <button
-                        className="mt-2 text-xs px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20"
-                        onClick={async () => {
-                          setNoteSavingId(ticket.id);
-                          try {
-                            const res = await fetch(`/api/admin/tickets/${ticket.id}/note`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ note: noteDrafts[ticket.id] ?? ticket.note ?? '' }),
-                            });
-                            if (!res.ok) throw new Error('Failed to save note');
-                            await loadTickets();
-                            if (historyTicketId === ticket.id) {
-                              await loadHistory(ticket.id);
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          className="text-xs px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20"
+                          onClick={async () => {
+                            setNoteSavingId(ticket.id);
+                            try {
+                              const res = await fetch(`/api/admin/tickets/${ticket.id}/note`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ note: noteDrafts[ticket.id] ?? ticket.note ?? '' }),
+                              });
+                              if (!res.ok) throw new Error('Failed to save note');
+                              await loadTickets();
+                              if (historyTicketId === ticket.id) {
+                                await loadHistory(ticket.id);
+                              }
+                            } catch (err) {
+                              setError((err as Error).message);
+                            } finally {
+                              setNoteSavingId(null);
                             }
-                          } catch (err) {
-                            setError((err as Error).message);
-                          } finally {
-                            setNoteSavingId(null);
-                          }
-                        }}
-                        disabled={noteSavingId === ticket.id}
-                      >
-                        {noteSavingId === ticket.id ? 'Saving...' : 'Save note'}
-                      </button>
-                      <button
-                        className="mt-2 ml-2 text-xs px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20"
-                        onClick={() => loadHistory(ticket.id)}
-                      >
-                        View history
-                      </button>
+                          }}
+                          disabled={noteSavingId === ticket.id}
+                        >
+                          {noteSavingId === ticket.id ? 'Saving...' : 'Save note'}
+                        </button>
+                        <button
+                          className="text-xs px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20"
+                          onClick={() => loadHistory(ticket.id)}
+                        >
+                          View history
+                        </button>
+                      </div>
                     </td>
-                    <td className="p-2 text-sm text-gray-200 whitespace-pre-line">
+                    <td className="p-2 text-sm text-gray-200 whitespace-pre-line align-top">
                       {ticket.feedback || '—'}
                     </td>
                   </tr>
