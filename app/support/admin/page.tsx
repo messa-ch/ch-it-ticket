@@ -37,6 +37,7 @@ export default function AdminPage() {
   const [statusFilter, setStatusFilter] = useState<Ticket['status'][]>(['OPEN', 'IN PROGRESS']);
   const [ratingFilter, setRatingFilter] = useState<'ALL' | 'RATED' | 'UNRATED'>('ALL');
   const [feedbackFilter, setFeedbackFilter] = useState<'ALL' | 'HAS' | 'NONE'>('ALL');
+  const [openSubjectId, setOpenSubjectId] = useState<string | null>(null);
 
   const loadSession = async () => {
     try {
@@ -265,7 +266,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white px-4 py-10">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold">Support Admin</h1>
@@ -290,7 +291,7 @@ export default function AdminPage() {
         <section className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <div className="flex flex-col gap-4 mb-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <h2 className="text-xl font-semibold">Tickets (createdAt asc)</h2>
+              <h2 className="text-xl font-semibold">Tickets</h2>
               <div className="flex flex-wrap gap-2 text-xs">
                 <span className="px-2 py-1 rounded bg-white/10 border border-white/20">Open: {statusCounts.OPEN}</span>
                 <span className="px-2 py-1 rounded bg-white/10 border border-white/20">In Progress: {statusCounts['IN PROGRESS']}</span>
@@ -380,7 +381,7 @@ export default function AdminPage() {
             </div>
           <div className="overflow-x-auto">
             <div className="max-h-[60vh] overflow-y-auto">
-              <table className="min-w-full text-sm">
+              <table className="min-w-[1200px] w-full text-sm">
                 <thead className="text-gray-300 sticky top-0 bg-slate-950">
                   <tr className="border-b border-white/10">
                   <th className="text-left p-2">Name</th>
@@ -401,7 +402,15 @@ export default function AdminPage() {
                   <tr key={ticket.id} className="border-b border-white/5">
                     <td className="p-2">{ticket.name}</td>
                     <td className="p-2">{ticket.email}</td>
-                    <td className="p-2">{ticket.subject}</td>
+                    <td className="p-2">
+                      <button
+                        className="text-left underline text-blue-200 hover:text-blue-50 hover:shadow-[0_0_10px_rgba(255,255,255,0.25)] transition rounded px-1"
+                        onClick={() => setOpenSubjectId(ticket.id)}
+                        title="Click to view full description"
+                      >
+                        {ticket.subject}
+                      </button>
+                    </td>
                     <td className="p-2">{ticket.issueType === 'GENERAL' ? 'General' : 'Website'}</td>
                     <td className="p-2">{ticket.urgency}</td>
                     <td className="p-2">{ticket.website}</td>
@@ -483,6 +492,35 @@ export default function AdminPage() {
           </div>
         </section>
       </div>
+      {openSubjectId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 z-50">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-lg font-semibold">Ticket details</h3>
+              <button
+                className="text-sm px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20"
+                onClick={() => setOpenSubjectId(null)}
+              >
+                Close
+              </button>
+            </div>
+            {(() => {
+              const ticket = formattedTickets.find((t) => t.id === openSubjectId);
+              if (!ticket) return <p className="text-sm text-gray-300">Ticket not found.</p>;
+              return (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-300"><span className="font-semibold text-white">Subject:</span> {ticket.subject}</p>
+                  <p className="text-sm text-gray-300"><span className="font-semibold text-white">Email:</span> {ticket.email}</p>
+                  <p className="text-sm text-gray-300"><span className="font-semibold text-white">Created:</span> {ticket.createdLabel}</p>
+                  <div className="text-sm text-gray-100 whitespace-pre-wrap border border-white/10 rounded-lg p-3 bg-black/20">
+                    {ticket.description}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
