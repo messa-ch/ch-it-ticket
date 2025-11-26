@@ -32,6 +32,8 @@ export default function CustomerPortalPage() {
   const [feedbackDraft, setFeedbackDraft] = useState<Record<string, string>>({});
   const [ratingDraft, setRatingDraft] = useState<Record<string, number>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [reopenReason, setReopenReason] = useState<Record<string, string>>({});
+  const [reopenSavingId, setReopenSavingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | Ticket['status']>('ALL');
   const [ratingFilter, setRatingFilter] = useState<'ALL' | 'RATED' | 'UNRATED'>('ALL');
   const [feedbackFilter, setFeedbackFilter] = useState<'ALL' | 'HAS' | 'NONE'>('ALL');
@@ -126,6 +128,33 @@ export default function CustomerPortalPage() {
       setError((err as Error).message);
     } finally {
       setSavingId(null);
+    }
+  };
+
+  const requestReopen = async (ticketId: string) => {
+    const reason = (reopenReason[ticketId] || '').trim();
+    if (!reason) {
+      setError('Please add a reason to reopen this ticket.');
+      return;
+    }
+
+    setError(null);
+    setMessage(null);
+    setReopenSavingId(ticketId);
+    try {
+      const res = await fetch(`/api/customer/tickets/${ticketId}/reopen`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to send reopen request');
+      setMessage('Reopen request sent to support.');
+      setReopenReason((prev) => ({ ...prev, [ticketId]: '' }));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setReopenSavingId(null);
     }
   };
 
@@ -308,6 +337,34 @@ export default function CustomerPortalPage() {
                       </span>
                     </div>
                     <p className="text-sm text-gray-200 whitespace-pre-line">{ticket.description}</p>
+                    {(ticket.status === 'CLOSED' || ticket.status === 'REJECTED') && (
+                      <div className="border border-white/10 bg-white/5 rounded-lg p-3 space-y-2">
+                        <p className="text-sm text-gray-200">Want to reopen this ticket? Tell us why and we'll notify support.</p>
+                        <textarea
+                          className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm"
+                          rows={2}
+                          value={reopenReason[ticket.id] ?? ''}
+                          onChange={(e) =>
+                            setReopenReason((prev) => ({
+                              ...prev,
+                              [ticket.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Describe why you'd like this ticket reopened..."
+                        />
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            className="px-4 py-2 rounded bg-white/10 border border-white/20 hover:bg-white/20 text-sm"
+                            onClick={() => requestReopen(ticket.id)}
+                            disabled={reopenSavingId === ticket.id}
+                          >
+                            {reopenSavingId === ticket.id ? 'Sending...' : 'Request reopen'}
+                          </button>
+                          <p className="text-xs text-gray-400">Email will be sent to support with your reason.</p>
+                        </div>
+                      </div>
+                    )}
                     {ticket.status === 'CLOSED' && (
                       <div className="pt-2 space-y-2">
                         <div className="flex items-center gap-2">
