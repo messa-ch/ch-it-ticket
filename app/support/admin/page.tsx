@@ -22,6 +22,7 @@ type Ticket = {
 type View = 'login' | 'forgot' | 'dashboard';
 
 const STATUS_ORDER: Ticket['status'][] = ['OPEN', 'IN PROGRESS', 'CLOSED', 'REJECTED'];
+const URGENCY_OPTIONS = [5, 4, 3, 2, 1];
 
 export default function AdminPage() {
   const [view, setView] = useState<View>('login');
@@ -37,6 +38,7 @@ export default function AdminPage() {
   const [statusFilter, setStatusFilter] = useState<Ticket['status'][]>(['OPEN', 'IN PROGRESS']);
   const [ratingFilter, setRatingFilter] = useState<'ALL' | 'RATED' | 'UNRATED'>('ALL');
   const [feedbackFilter, setFeedbackFilter] = useState<'ALL' | 'HAS' | 'NONE'>('ALL');
+  const [urgencyFilter, setUrgencyFilter] = useState<number[]>([...URGENCY_OPTIONS]);
   const [openSubjectId, setOpenSubjectId] = useState<string | null>(null);
 
   const loadSession = async () => {
@@ -149,6 +151,7 @@ export default function AdminPage() {
     return formattedTickets
       .filter((t) => {
         if (statusFilter.length && !statusFilter.includes(t.status)) return false;
+        if (urgencyFilter.length && !urgencyFilter.includes(t.urgency)) return false;
         if (ratingFilter === 'RATED' && !t.rating) return false;
         if (ratingFilter === 'UNRATED' && t.rating) return false;
         if (feedbackFilter === 'HAS' && !t.feedback) return false;
@@ -158,6 +161,8 @@ export default function AdminPage() {
       .sort((a, b) => {
         const statusRank = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
         if (statusRank !== 0) return statusRank;
+        const urgencyRank = (b.urgency || 0) - (a.urgency || 0);
+        if (urgencyRank !== 0) return urgencyRank;
         return a.createdAtMs - b.createdAtMs; // oldest first within status
       });
   }, [formattedTickets, statusFilter, ratingFilter, feedbackFilter]);
@@ -352,6 +357,40 @@ export default function AdminPage() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-400">Defaults to Open + In Progress.</p>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-gray-300 mb-1">Urgency (multi-select)</label>
+                <select
+                  multiple
+                  className="w-full bg-black/30 border border-white/10 rounded px-2 py-2 h-28"
+                  value={urgencyFilter.map(String)}
+                  onChange={(e) => {
+                    const values = Array.from(e.target.selectedOptions).map((o) => Number(o.value));
+                    setUrgencyFilter(values);
+                  }}
+                >
+                  {URGENCY_OPTIONS.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10"
+                    onClick={() => setUrgencyFilter([...URGENCY_OPTIONS])}
+                  >
+                    Select all
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10"
+                    onClick={() => setUrgencyFilter([])}
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-gray-300 mb-1">Rating</label>
