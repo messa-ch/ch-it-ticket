@@ -21,6 +21,8 @@ type Ticket = {
 
 type View = 'login' | 'forgot' | 'dashboard';
 
+const STATUS_ORDER: Ticket['status'][] = ['OPEN', 'IN PROGRESS', 'CLOSED', 'REJECTED'];
+
 export default function AdminPage() {
   const [view, setView] = useState<View>('login');
   const [email, setEmail] = useState('');
@@ -32,7 +34,7 @@ export default function AdminPage() {
   const [forgotSent, setForgotSent] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [noteSavingId, setNoteSavingId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'ALL' | Ticket['status']>('ALL');
+  const [statusFilter, setStatusFilter] = useState<Ticket['status'][]>(['OPEN', 'IN PROGRESS']);
   const [ratingFilter, setRatingFilter] = useState<'ALL' | 'RATED' | 'UNRATED'>('ALL');
   const [feedbackFilter, setFeedbackFilter] = useState<'ALL' | 'HAS' | 'NONE'>('ALL');
 
@@ -136,20 +138,27 @@ export default function AdminPage() {
     return tickets.map((t) => ({
       ...t,
       createdLabel: new Date(t.createdAt).toLocaleString(),
+      createdAtMs: new Date(t.createdAt).getTime(),
       note: t.note ?? '',
       feedback: t.feedback ?? '',
     }));
   }, [tickets]);
 
   const filteredTickets = useMemo(() => {
-    return formattedTickets.filter((t) => {
-      if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
-      if (ratingFilter === 'RATED' && !t.rating) return false;
-      if (ratingFilter === 'UNRATED' && t.rating) return false;
-      if (feedbackFilter === 'HAS' && !t.feedback) return false;
-      if (feedbackFilter === 'NONE' && t.feedback) return false;
-      return true;
-    });
+    return formattedTickets
+      .filter((t) => {
+        if (statusFilter.length && !statusFilter.includes(t.status)) return false;
+        if (ratingFilter === 'RATED' && !t.rating) return false;
+        if (ratingFilter === 'UNRATED' && t.rating) return false;
+        if (feedbackFilter === 'HAS' && !t.feedback) return false;
+        if (feedbackFilter === 'NONE' && t.feedback) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const statusRank = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+        if (statusRank !== 0) return statusRank;
+        return a.createdAtMs - b.createdAtMs; // oldest first within status
+      });
   }, [formattedTickets, statusFilter, ratingFilter, feedbackFilter]);
 
   const statusCounts = useMemo(() => {
@@ -296,19 +305,52 @@ export default function AdminPage() {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-              <div>
-                <label className="block text-gray-300 mb-1">Status</label>
-                <select
-                  className="w-full bg-black/30 border border-white/10 rounded px-2 py-2"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
-                >
-                  <option value="ALL">All</option>
-                  <option value="OPEN">Open</option>
-                  <option value="IN PROGRESS">In Progress</option>
-                  <option value="CLOSED">Closed</option>
-                  <option value="REJECTED">Rejected</option>
-                </select>
+              <div className="space-y-2">
+                <label className="block text-gray-300 mb-1">Status (multi-select)</label>
+                <div className="flex flex-wrap gap-2">
+                  {STATUS_ORDER.map((status) => {
+                    const active = statusFilter.includes(status);
+                    return (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() =>
+                          setStatusFilter((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(status)) {
+                              next.delete(status);
+                            } else {
+                              next.add(status);
+                            }
+                            return Array.from(next);
+                          })
+                        }
+                        className={`px-3 py-1 rounded-full text-xs border ${
+                          active
+                            ? 'bg-white text-black border-white'
+                            : 'bg-black/20 border-white/20 text-gray-200 hover:bg-white/10'
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter([...STATUS_ORDER])}
+                    className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10"
+                  >
+                    Select all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter([])}
+                    className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400">Defaults to Open + In Progress.</p>
               </div>
               <div>
                 <label className="block text-gray-300 mb-1">Rating</label>
@@ -335,11 +377,12 @@ export default function AdminPage() {
                 </select>
               </div>
             </div>
-          </div>
+            </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="text-gray-300">
-                <tr className="border-b border-white/10">
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="min-w-full text-sm">
+                <thead className="text-gray-300 sticky top-0 bg-slate-950">
+                  <tr className="border-b border-white/10">
                   <th className="text-left p-2">Name</th>
                   <th className="text-left p-2">Email</th>
                   <th className="text-left p-2">Subject</th>
@@ -351,9 +394,9 @@ export default function AdminPage() {
                   <th className="text-left p-2">Action</th>
                   <th className="text-left p-2">Note (visible to customer)</th>
                   <th className="text-left p-2">Feedback</th>
-                </tr>
-              </thead>
-              <tbody>
+                  </tr>
+                </thead>
+                <tbody>
                 {filteredTickets.map((ticket) => (
                   <tr key={ticket.id} className="border-b border-white/5">
                     <td className="p-2">{ticket.name}</td>
@@ -427,15 +470,16 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ))}
-                {formattedTickets.length === 0 && (
+                {filteredTickets.length === 0 && (
                   <tr>
-                    <td className="p-4 text-center text-gray-400" colSpan={7}>
-                      No tickets yet.
+                    <td className="p-4 text-center text-gray-400" colSpan={11}>
+                      No tickets match the current filters.
                     </td>
                   </tr>
                 )}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       </div>
