@@ -30,11 +30,22 @@ export async function POST(
       return NextResponse.json({ error: 'Please provide a reason to reopen this ticket.' }, { status: 400 });
     }
 
+    const reopenNote = `Reopen requested by customer: ${reason}`;
+
     const updated = await prisma.ticket.update({
       where: { id },
       data: {
         status: 'OPEN',
-        note: `${ticket.note ? `${ticket.note}\n\n` : ''}Reopen requested by customer: ${reason}`,
+        note: `${ticket.note ? `${ticket.note}\n\n` : ''}${reopenNote}`,
+      },
+    });
+
+    await prisma.ticketNote.create({
+      data: {
+        ticketId: id,
+        author: 'CUSTOMER',
+        authorRef: ticket.email,
+        body: reopenNote,
       },
     });
 

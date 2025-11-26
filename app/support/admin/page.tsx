@@ -19,6 +19,15 @@ type Ticket = {
   issueType: 'GENERAL' | 'WEBSITE';
 };
 
+type TicketNote = {
+  id: string;
+  ticketId: string;
+  author: string;
+  authorRef: string | null;
+  body: string;
+  createdAt: string;
+};
+
 type View = 'login' | 'forgot' | 'dashboard';
 
 const STATUS_ORDER: Ticket['status'][] = ['OPEN', 'IN PROGRESS', 'CLOSED', 'REJECTED'];
@@ -40,6 +49,10 @@ export default function AdminPage() {
   const [feedbackFilter, setFeedbackFilter] = useState<'ALL' | 'HAS' | 'NONE'>('ALL');
   const [urgencyFilter, setUrgencyFilter] = useState<number[]>([...URGENCY_OPTIONS]);
   const [openSubjectId, setOpenSubjectId] = useState<string | null>(null);
+  const [historyTicketId, setHistoryTicketId] = useState<string | null>(null);
+  const [historyItems, setHistoryItems] = useState<TicketNote[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const loadSession = async () => {
     try {
@@ -116,6 +129,23 @@ export default function AdminPage() {
       await loadTickets();
     } catch (err) {
       setError((err as Error).message);
+    }
+  };
+
+  const loadHistory = async (ticketId: string) => {
+    setHistoryTicketId(ticketId);
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const res = await fetch(`/api/admin/tickets/${ticketId}/notes`, { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load history');
+      setHistoryItems(data.notes || []);
+    } catch (err) {
+      setHistoryError((err as Error).message);
+      setHistoryItems([]);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -502,6 +532,9 @@ export default function AdminPage() {
                             });
                             if (!res.ok) throw new Error('Failed to save note');
                             await loadTickets();
+                            if (historyTicketId === ticket.id) {
+                              await loadHistory(ticket.id);
+                            }
                           } catch (err) {
                             setError((err as Error).message);
                           } finally {
@@ -511,6 +544,12 @@ export default function AdminPage() {
                         disabled={noteSavingId === ticket.id}
                       >
                         {noteSavingId === ticket.id ? 'Saving...' : 'Save note'}
+                      </button>
+                      <button
+                        className="mt-2 ml-2 text-xs px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20"
+                        onClick={() => loadHistory(ticket.id)}
+                      >
+                        View history
                       </button>
                     </td>
                     <td className="p-2 text-sm text-gray-200 whitespace-pre-line">
@@ -557,6 +596,49 @@ export default function AdminPage() {
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+      {historyTicketId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 z-50">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-lg font-semibold">Note history</h3>
+              <button
+                className="text-sm px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20"
+                onClick={() => {
+                  setHistoryTicketId(null);
+                  setHistoryItems([]);
+                  setHistoryError(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
+            {historyLoading && <p className="text-sm text-gray-300">Loading history...</p>}
+            {historyError && <p className="text-sm text-red-300">{historyError}</p>}
+            {!historyLoading && !historyError && (
+              <div className="space-y-3">
+                {historyItems.length === 0 && (
+                  <p className="text-sm text-gray-300">No notes yet.</p>
+                )}
+                {historyItems.map((note) => (
+                  <div
+                    key={note.id}
+                    className="border border-white/10 rounded-lg p-3 bg-black/20"
+                  >
+                    <div className="flex items-center justify-between text-xs text-gray-300 mb-2">
+                      <span className="font-semibold text-white">
+                        {note.author}
+                        {note.authorRef ? ` (${note.authorRef})` : ''}
+                      </span>
+                      <span>{new Date(note.createdAt).toLocaleString()}</span>
+                    </div>
+                    <p className="text-sm text-gray-100 whitespace-pre-wrap">{note.body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

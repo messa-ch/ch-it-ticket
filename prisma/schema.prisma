@@ -25,6 +25,17 @@ model Ticket {
   feedback    String?
   note        String?
   issueType   String   @default("GENERAL") // GENERAL or WEBSITE
+  notes       TicketNote[]
+}
+
+model TicketNote {
+  id        String   @id @default(uuid())
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId  String
+  author    String   // ADMIN | CUSTOMER | SYSTEM
+  authorRef String?  // email or identifier
+  body      String
+  createdAt DateTime @default(now())
 }
 
 model AdminUser {

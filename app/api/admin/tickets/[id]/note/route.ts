@@ -21,5 +21,16 @@ export async function PATCH(
     data: { note },
   });
 
+  if (note) {
+    await prisma.ticketNote.create({
+      data: {
+        ticketId: id,
+        author: 'ADMIN',
+        authorRef: admin.email,
+        body: note,
+      },
+    });
+  }
+
   return NextResponse.json({ ticket });
 }
