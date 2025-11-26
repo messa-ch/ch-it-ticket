@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 
 type Ticket = {
@@ -53,6 +53,8 @@ export default function AdminPage() {
   const [historyItems, setHistoryItems] = useState<TicketNote[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [showUrgencyMenu, setShowUrgencyMenu] = useState(false);
+  const urgencyMenuRef = useRef<HTMLDivElement | null>(null);
 
   const loadSession = async () => {
     try {
@@ -88,6 +90,16 @@ export default function AdminPage() {
   useEffect(() => {
     loadSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (urgencyMenuRef.current && !urgencyMenuRef.current.contains(event.target as Node)) {
+        setShowUrgencyMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -388,39 +400,69 @@ export default function AdminPage() {
                 </div>
                 <p className="text-xs text-gray-400">Defaults to Open + In Progress.</p>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 relative" ref={urgencyMenuRef}>
                 <label className="block text-gray-300 mb-1">Urgency (multi-select)</label>
-                <select
-                  multiple
-                  className="w-full bg-black/30 border border-white/10 rounded px-2 py-2 h-28"
-                  value={urgencyFilter.map(String)}
-                  onChange={(e) => {
-                    const values = Array.from(e.target.selectedOptions).map((o) => Number(o.value));
-                    setUrgencyFilter(values);
-                  }}
+                <button
+                  type="button"
+                  onClick={() => setShowUrgencyMenu((prev) => !prev)}
+                  className="w-full flex items-center justify-between bg-black/30 border border-white/10 rounded px-3 py-2 text-left hover:border-white/30 transition"
                 >
-                  {URGENCY_OPTIONS.map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10"
-                    onClick={() => setUrgencyFilter([...URGENCY_OPTIONS])}
-                  >
-                    Select all
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/20 text-gray-200 hover:bg-white/10"
-                    onClick={() => setUrgencyFilter([])}
-                  >
-                    Clear
-                  </button>
-                </div>
+                  <span className="text-sm text-gray-100">
+                    {urgencyFilter.length === URGENCY_OPTIONS.length
+                      ? 'All'
+                      : urgencyFilter.length === 0
+                      ? 'None selected'
+                      : urgencyFilter.slice().sort((a, b) => b - a).join(', ')}
+                  </span>
+                  <span className="text-xs text-gray-400">▼</span>
+                </button>
+                {showUrgencyMenu && (
+                  <div className="absolute z-20 mt-1 w-full bg-slate-900 border border-white/15 rounded-lg shadow-xl p-2 space-y-1">
+                    {URGENCY_OPTIONS.map((u) => {
+                      const checked = urgencyFilter.includes(u);
+                      return (
+                        <label
+                          key={u}
+                          className="flex items-center gap-2 px-2 py-1 rounded hover:bg-white/5 cursor-pointer text-sm text-gray-100"
+                        >
+                          <input
+                            type="checkbox"
+                            className="accent-white"
+                            checked={checked}
+                            onChange={() =>
+                              setUrgencyFilter((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(u)) {
+                                  next.delete(u);
+                                } else {
+                                  next.add(u);
+                                }
+                                return Array.from(next);
+                              })
+                            }
+                          />
+                          Urgency {u}
+                        </label>
+                      );
+                    })}
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="button"
+                        className="px-3 py-1 rounded-full text-xs bg-white/10 border border-white/20 text-gray-100 hover:bg-white/20"
+                        onClick={() => setUrgencyFilter([...URGENCY_OPTIONS])}
+                      >
+                        Select all
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1 rounded-full text-xs bg-white/10 border border-white/20 text-gray-100 hover:bg-white/20"
+                        onClick={() => setUrgencyFilter([])}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-gray-300 mb-1">Rating</label>
