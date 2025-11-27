@@ -19,13 +19,15 @@ type Ticket = {
   issueType: 'GENERAL' | 'WEBSITE';
 };
 
-type TicketNote = {
+type TicketHistoryItem = {
   id: string;
-  ticketId: string;
+  type: 'NOTE' | 'STATUS';
   author: string;
   authorRef: string | null;
   body: string;
   createdAt: string;
+  toStatus?: Ticket['status'];
+  fromStatus?: Ticket['status'] | null;
 };
 
 type View = 'login' | 'forgot' | 'dashboard';
@@ -50,7 +52,7 @@ export default function AdminPage() {
   const [urgencyFilter, setUrgencyFilter] = useState<number[]>([...URGENCY_OPTIONS]);
   const [openSubjectId, setOpenSubjectId] = useState<string | null>(null);
   const [historyTicketId, setHistoryTicketId] = useState<string | null>(null);
-  const [historyItems, setHistoryItems] = useState<TicketNote[]>([]);
+  const [historyItems, setHistoryItems] = useState<TicketHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [showUrgencyMenu, setShowUrgencyMenu] = useState(false);
@@ -152,7 +154,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/tickets/${ticketId}/notes`, { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to load history');
-      setHistoryItems(data.notes || []);
+      setHistoryItems(data.history || []);
     } catch (err) {
       setHistoryError((err as Error).message);
       setHistoryItems([]);
@@ -647,7 +649,7 @@ export default function AdminPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 z-50">
           <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-2xl max-h-[80vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-lg font-semibold">Note history</h3>
+              <h3 className="text-lg font-semibold">Ticket history</h3>
               <button
                 className="text-sm px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20"
                 onClick={() => {
@@ -664,21 +666,31 @@ export default function AdminPage() {
             {!historyLoading && !historyError && (
               <div className="space-y-3">
                 {historyItems.length === 0 && (
-                  <p className="text-sm text-gray-300">No notes yet.</p>
+                  <p className="text-sm text-gray-300">No history yet.</p>
                 )}
-                {historyItems.map((note) => (
+                {historyItems.map((entry) => (
                   <div
-                    key={note.id}
+                    key={entry.id}
                     className="border border-white/10 rounded-lg p-3 bg-black/20"
                   >
                     <div className="flex items-center justify-between text-xs text-gray-300 mb-2">
                       <span className="font-semibold text-white">
-                        {note.author}
-                        {note.author !== 'ADMIN' && note.authorRef ? ` (${note.authorRef})` : ''}
+                        {entry.type === 'STATUS' ? 'Status update' : entry.author}
+                        {entry.authorRef ? ` (${entry.authorRef})` : ''}
                       </span>
-                      <span>{new Date(note.createdAt).toLocaleString()}</span>
+                      <span>{new Date(entry.createdAt).toLocaleString()}</span>
                     </div>
-                    <p className="text-sm text-gray-100 whitespace-pre-wrap">{note.body}</p>
+                    <p className="text-sm text-gray-100 whitespace-pre-wrap">{entry.body}</p>
+                    {entry.type === 'STATUS' && entry.toStatus && (
+                      <div className="flex items-center gap-2 text-xs text-gray-200 mt-2">
+                        <span className="px-2 py-1 rounded bg-white/10 border border-white/10 text-white">
+                          {entry.toStatus}
+                        </span>
+                        {entry.fromStatus && (
+                          <span className="text-gray-300">from {entry.fromStatus}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

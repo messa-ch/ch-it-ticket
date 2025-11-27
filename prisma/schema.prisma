@@ -26,6 +26,7 @@ model Ticket {
   note        String?
   issueType   String   @default("GENERAL") // GENERAL or WEBSITE
   notes       TicketNote[]
+  statusLogs  TicketStatusLog[]
 }
 
 model TicketNote {
@@ -36,6 +37,16 @@ model TicketNote {
   authorRef String?  // email or identifier
   body      String
   createdAt DateTime @default(now())
+}
+
+model TicketStatusLog {
+  id         String   @id @default(uuid())
+  ticket     Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId   String
+  fromStatus String?
+  toStatus   String
+  actor      String?
+  createdAt  DateTime @default(now())
 }
 
 model AdminUser {

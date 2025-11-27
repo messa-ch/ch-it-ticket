@@ -32,21 +32,34 @@ export async function POST(
 
     const reopenNote = `Reopen requested by customer: ${reason}`;
 
-    const updated = await prisma.ticket.update({
-      where: { id },
-      data: {
-        status: 'OPEN',
-        note: `${ticket.note ? `${ticket.note}\n\n` : ''}${reopenNote}`,
-      },
-    });
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedTicket = await tx.ticket.update({
+        where: { id },
+        data: {
+          status: 'OPEN',
+          note: `${ticket.note ? `${ticket.note}\n\n` : ''}${reopenNote}`,
+        },
+      });
 
-    await prisma.ticketNote.create({
-      data: {
-        ticketId: id,
-        author: 'CUSTOMER',
-        authorRef: ticket.email,
-        body: reopenNote,
-      },
+      await tx.ticketNote.create({
+        data: {
+          ticketId: id,
+          author: 'CUSTOMER',
+          authorRef: ticket.email,
+          body: reopenNote,
+        },
+      });
+
+      await tx.ticketStatusLog.create({
+        data: {
+          ticketId: id,
+          fromStatus: ticket.status,
+          toStatus: 'OPEN',
+          actor: ticket.email,
+        },
+      });
+
+      return updatedTicket;
     });
 
     const transporter = getMailer();

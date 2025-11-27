@@ -12,10 +12,37 @@ export async function GET(
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await params;
-  const notes = await prisma.ticketNote.findMany({
-    where: { ticketId: id },
-    orderBy: { createdAt: 'asc' },
-  });
+  const [notes, statusLogs] = await prisma.$transaction([
+    prisma.ticketNote.findMany({
+      where: { ticketId: id },
+      orderBy: { createdAt: 'asc' },
+    }),
+    prisma.ticketStatusLog.findMany({
+      where: { ticketId: id },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ]);
 
-  return NextResponse.json({ notes });
+  const history = [
+    ...notes.map((note) => ({
+      id: note.id,
+      type: 'NOTE' as const,
+      author: note.author,
+      authorRef: note.authorRef,
+      body: note.body,
+      createdAt: note.createdAt,
+    })),
+    ...statusLogs.map((log) => ({
+      id: `status-${log.id}`,
+      type: 'STATUS' as const,
+      author: 'STATUS',
+      authorRef: log.actor,
+      body: `Status changed to ${log.toStatus}${log.fromStatus ? ` (from ${log.fromStatus})` : ''}`,
+      createdAt: log.createdAt,
+      toStatus: log.toStatus,
+      fromStatus: log.fromStatus,
+    })),
+  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  return NextResponse.json({ history });
 }

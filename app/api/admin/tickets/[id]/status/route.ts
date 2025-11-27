@@ -19,9 +19,31 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }
 
-  const ticket = await prisma.ticket.update({
-    where: { id },
-    data: { status },
+  const existing = await prisma.ticket.findUnique({ where: { id } });
+  if (!existing) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  if (existing.status === status) {
+    return NextResponse.json({ ticket: existing });
+  }
+
+  const ticket = await prisma.$transaction(async (tx) => {
+    const updated = await tx.ticket.update({
+      where: { id },
+      data: { status },
+    });
+
+    await tx.ticketStatusLog.create({
+      data: {
+        ticketId: id,
+        fromStatus: existing.status,
+        toStatus: status,
+        actor: admin.email,
+      },
+    });
+
+    return updated;
   });
 
   if (status === 'CLOSED') {

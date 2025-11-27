@@ -35,16 +35,29 @@ export async function POST(request: Request) {
         }
 
         // Create ticket in database
-        const ticket = await prisma.ticket.create({
-            data: {
-                name: validatedData.name,
-                email: validatedData.email,
-                subject: validatedData.subject,
-                description: validatedData.description,
-                website: validatedData.website,
-                issueType: validatedData.issueType,
-                urgency: validatedData.urgency,
-            },
+        const ticket = await prisma.$transaction(async (tx) => {
+            const created = await tx.ticket.create({
+                data: {
+                    name: validatedData.name,
+                    email: validatedData.email,
+                    subject: validatedData.subject,
+                    description: validatedData.description,
+                    website: validatedData.website,
+                    issueType: validatedData.issueType,
+                    urgency: validatedData.urgency,
+                },
+            });
+
+            await tx.ticketStatusLog.create({
+                data: {
+                    ticketId: created.id,
+                    fromStatus: null,
+                    toStatus: 'OPEN',
+                    actor: validatedData.email,
+                },
+            });
+
+            return created;
         });
 
         // Send email
