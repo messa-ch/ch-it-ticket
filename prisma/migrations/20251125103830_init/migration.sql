@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "Ticket" (
+CREATE TABLE IF NOT EXISTS "Ticket" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,

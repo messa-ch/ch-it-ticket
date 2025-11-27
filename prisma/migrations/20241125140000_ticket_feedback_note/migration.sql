@@ -1,3 +1,3 @@
 -- AlterTable
-ALTER TABLE "Ticket" ADD COLUMN     "feedback" TEXT,
-ADD COLUMN     "note" TEXT;
+ALTER TABLE "Ticket" ADD COLUMN IF NOT EXISTS "feedback" TEXT,
+ADD COLUMN IF NOT EXISTS "note" TEXT;

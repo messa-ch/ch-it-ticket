@@ -1,5 +1,18 @@
+-- Ensure Ticket exists for environments created before baseline migration
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE TABLE IF NOT EXISTS "Ticket" (
+    "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "website" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "status" TEXT NOT NULL DEFAULT 'OPEN'
+);
+
 -- AlterTable
-ALTER TABLE "Ticket" ADD COLUMN     "rating" INTEGER;
+ALTER TABLE "Ticket" ADD COLUMN IF NOT EXISTS "rating" INTEGER;
 
 -- CreateTable
 CREATE TABLE "CustomerLoginToken" (
